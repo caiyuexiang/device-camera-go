@@ -1,9 +1,6 @@
 name: edgex-device-camera
 base: core18
-version: "0.0.0"
-version-script: |
-  VERSION=$(shell cat ./VERSION 2>/dev/null || echo 0.0.0)
-  echo $VERSION-$(date +%Y%m%d)+$(git rev-parse --short HEAD)
+adopt-info: version
 license: Apache-2.0
 summary: Control/communicate with ONVIF-compliant cameras using Camera Device Service
 title: EdgeX Camera Device Service
@@ -29,6 +26,8 @@ apps:
   device-camera-go:
     adapter: none
     command: bin/device-camera-go $CONFIG_PRO_ARG $CONF_ARG $REGISTRY_ARG
+    command-chain:
+      - bin/startup-env-var.sh
     environment:
       CONFIG_PRO_ARG: "--cp=consul://localhost:8500"
       CONF_ARG: "--confdir=$SNAP_DATA/config/device-camera-go/res"
@@ -38,6 +37,17 @@ apps:
     plugs: [network, network-bind]
 
 parts:
+  version:
+    plugin: nil
+    source: snap/local
+    override-pull: |
+      cd $SNAPCRAFT_PROJECT_DIR
+      if [ -f VERSION ]; then
+        PROJECT_VERSION=$(cat VERSION)
+      else
+        PROJECT_VERSION="0.0.0"
+      fi
+      snapcraftctl set-version ${PROJECT_VERSION}
   go:
     plugin: nil
     source: snap/local
@@ -99,3 +109,7 @@ parts:
          "$SNAPCRAFT_PART_INSTALL/usr/share/doc/device-camera-go/Attribution.txt"
       install -DT "./LICENSE" \
          "$SNAPCRAFT_PART_INSTALL/usr/share/doc/device-camera-go/LICENSE"
+
+  config-common:
+    plugin: dump
+    source: snap/local/runtime-helpers
